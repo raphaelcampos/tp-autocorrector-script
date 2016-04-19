@@ -1,0 +1,9 @@
+results
+input
+works
+*.zip
+*.tar.*
+*.7z
+*.rar
+*output*
+not_compiled

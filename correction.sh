@@ -5,6 +5,8 @@ rm "${rootdir}/not_compiled"
 rm -r "${rootdir}"/results
 mkdir "${rootdir}"/results
 
+correct_output="${rootdir}"/correct_output.txt
+
 rm -r works
 mkdir works
 
@@ -20,39 +22,48 @@ rm -v *.zip *.tar.* *.7z *.rar
 count=0
 for folder in *; do
 	cd "${folder}"
-	result=($(find -name '*.c' | head -n 1))
+	result="$(find -name '*.c' | head -n 1)"
 	loc=$(dirname "${result}")
 
 	echo "${folder}"
 	echo ${loc}
 
-	out=($(gcc ${loc}/*.c))
-
+	
+	mkdir "${rootdir}"/results/"${folder}"
+	
+	gcc ${loc}/*.c 2> "${rootdir}"/results/"${folder}/compile" 
 	if test ! -f "a.out" 
 	then
 		((count++))
 		echo "${folder}" >> "${rootdir}/not_compiled"
 	else
-		mkdir "${rootdir}"/results/"${folder}"
+		answer="${rootdir}"/results/"${folder}"/answer
+		dump="${rootdir}"/results/"${folder}"/dump
+
 		cp -r "${rootdir}"/input .
 		imgs=($(ls input/*cena* input/*objeto*))
 		for (( i = 0; i < ${#imgs[@]}; i+=2 )); 
 		do
-			echo "./a.out ${imgs[i]} ${imgs[i+1]} saida.txt" >> "${rootdir}"/results/"${folder}"/dump
-			./a.out ${imgs[i]} ${imgs[i+1]} saida.txt >> "${rootdir}"/results/"${folder}"/dump
-			cat saida.txt >> "${rootdir}"/results/"${folder}"/answer
-			echo "" >> "${rootdir}"/results/"${folder}"/answer
+			echo "./a.out ${imgs[i]} ${imgs[i+1]} saida.txt" >> "${dump}"
+			./a.out ${imgs[i]} ${imgs[i+1]} saida.txt >> "${dump}" 2>> "${dump}"
+			
+			cat saida.txt >> "${answer}"
+			echo "" >> "${answer}"
+
 			if test -f "saida.txt"
 			then
 				rm saida.txt
 			fi
 		done  
+		c_diff=($(diff -Z -B "${answer}" "${correct_output}" | grep "^>" | wc -l))
+
+		echo ${folder} ${c_diff} >> "${rootdir}"/results/summary
 	fi
 
 	cd ..
 done
 
-echo "Not compiled : ${count}" 
+echo "Not compiled : ${count}" >> "${rootdir}"/results/summary
 
 cd ..
 rm -r works
